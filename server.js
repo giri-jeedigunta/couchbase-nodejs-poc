@@ -6,7 +6,7 @@ const cluster = new couchbase.Cluster('couchbase://localhost/');
 cluster.authenticate('Administrator', 'Jeedigunta');
 const bucket = cluster.openBucket('beer-sample');
 const N1qlQuery = couchbase.N1qlQuery;
-const query = N1qlQuery.fromString("SELECT * FROM `beer-sample` LIMIT 1");  
+const query = N1qlQuery.fromString("SELECT * FROM `beer-sample` LIMIT 10");  
 //bucket.query(query, function (err, result) { console.log(result) });
 
 const init = async () => {
@@ -20,15 +20,19 @@ const init = async () => {
         method: 'GET',
         path: '/',
         handler: async (request, h) => {
-            return new Promise(resolve => {
-                let beerList = bucket.query(query, (err, result) => {
-                    console.dir(result);
-                    resolve(result);
+            return await new Promise(resolve => {
+                let beerList = bucket.query(query, (error, result) => {
+                    if(error) {
+                        return resolve(h.response({
+                            code: error.code,
+                            message: error.message
+                        }).code(500));
+                    }
+                    resolve(h.response(result));
                 });
-                return beerList;
             });
         }
-    });    
+    });
 
     await server.start();
     console.log('Server running on %s', server.info.uri);
